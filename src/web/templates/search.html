@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Database Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Equipment Database Search</h1>
+            <p>Search for equipment and categories in the database</p>
+        </header>
+
+        <main>
+            <div class="search-section">
+                <form id="searchForm" class="search-form">
+                    <div class="search-input-group">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            name="q" 
+                            placeholder="Enter search terms (e.g., 'speaker', 'microphone', 'light')"
+                            required
+                            autocomplete="off"
+                        >
+                        <button type="submit" class="search-btn">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2>Search Results</h2>
+                    <div class="results-summary" id="resultsSummary"></div>
+                </div>
+
+                <div class="results-tabs">
+                    <button class="tab-btn active" data-tab="equipment">Equipment</button>
+                    <button class="tab-btn" data-tab="categories">Categories</button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="equipmentTab" class="tab-pane active">
+                        <div id="equipmentResults" class="results-grid"></div>
+                    </div>
+                    
+                    <div id="categoriesTab" class="tab-pane">
+                        <div id="categoryResults" class="results-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Searching...</p>
+            </div>
+
+            <div class="no-results" id="noResults" style="display: none;">
+                <p>No results found for your search.</p>
+                <p>Try different keywords or check your spelling.</p>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <p>An error occurred during the search. Please try again.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Equipment Details Modal -->
+    <div id="equipmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="equipmentModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('searchForm');
+            const searchInput = document.getElementById('searchInput');
+            const resultsSection = document.getElementById('resultsSection');
+            const loading = document.getElementById('loading');
+            const noResults = document.getElementById('noResults');
+            const errorMessage = document.getElementById('errorMessage');
+            const resultsSummary = document.getElementById('resultsSummary');
+            const equipmentResults = document.getElementById('equipmentResults');
+            const categoryResults = document.getElementById('categoryResults');
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            const modal = document.getElementById('equipmentModal');
+            const closeBtn = document.querySelector('.close');
+            const modalContent = document.getElementById('equipmentModalContent');
+
+            // Search form submission
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const query = searchInput.value.trim();
+                if (query) {
+                    performSearch(query);
+                }
+            });
+
+            // Tab switching
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    
+                    // Update active tab button
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update active tab pane
+                    tabPanes.forEach(pane => pane.classList.remove('active'));
+                    document.getElementById(tabName + 'Tab').classList.add('active');
+                });
+            });
+
+            // Modal functionality
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            function performSearch(query) {
+                // Show loading, hide other sections
+                loading.style.display = 'block';
+                resultsSection.style.display = 'none';
+                noResults.style.display = 'none';
+                errorMessage.style.display = 'none';
+
+                fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        loading.style.display = 'none';
+                        
+                        if (data.error) {
+                            errorMessage.style.display = 'block';
+                            return;
+                        }
+
+                        if (data.total_equipment === 0 && data.total_categories === 0) {
+                            noResults.style.display = 'block';
+                            return;
+                        }
+
+                        // Display results
+                        displayResults(data);
+                        resultsSection.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        loading.style.display = 'none';
+                        errorMessage.style.display = 'block';
+                    });
+            }
+
+            function displayResults(data) {
+                // Update results summary
+                resultsSummary.innerHTML = `
+                    Found ${data.total_equipment} equipment items and ${data.total_categories} categories for "${data.query}"
+                `;
+
+                // Display equipment results
+                if (data.equipment.length > 0) {
+                    equipmentResults.innerHTML = data.equipment.map(equipment => `
+                        <div class="equipment-card" onclick="showEquipmentDetails(${equipment.id})">
+                            <div class="equipment-header">
+                                <h3>${equipment.name}</h3>
+                                <span class="equipment-type">${equipment.equipment_type}</span>
+                            </div>
+                            <p class="equipment-description">${equipment.description}</p>
+                            <div class="equipment-details">
+                                ${equipment.brand ? `<span class="brand">${equipment.brand}</span>` : ''}
+                                ${equipment.model ? `<span class="model">${equipment.model}</span>` : ''}
+                                <span class="availability ${equipment.availability_status}">${equipment.availability_status}</span>
+                            </div>
+                            ${equipment.rental_price_per_day ? `<div class="rental-price">$${equipment.rental_price_per_day}/day</div>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    equipmentResults.innerHTML = '<p class="no-items">No equipment found</p>';
+                }
+
+                // Display category results
+                if (data.categories.length > 0) {
+                    categoryResults.innerHTML = data.categories.map(category => `
+                        <div class="category-card">
+                            <h3>${category.name}</h3>
+                            <p>${category.description}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    categoryResults.innerHTML = '<p class="no-items">No categories found</p>';
+                }
+            }
+
+            // Global function for equipment details modal
+            window.showEquipmentDetails = function(equipmentId) {
+                fetch(`/api/equipment/${equipmentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            modalContent.innerHTML = '<p>Failed to load equipment details</p>';
+                        } else {
+                            modalContent.innerHTML = `
+                                <h2>${data.name}</h2>
+                                <div class="equipment-details-full">
+                                    <p><strong>Description:</strong> ${data.description}</p>
+                                    <p><strong>Type:</strong> ${data.equipment_type}</p>
+                                    ${data.brand ? `<p><strong>Brand:</strong> ${data.brand}</p>` : ''}
+                                    ${data.model ? `<p><strong>Model:</strong> ${data.model}</p>` : ''}
+                                    ${data.power_rating ? `<p><strong>Power Rating:</strong> ${data.power_rating}</p>` : ''}
+                                    ${data.dimensions ? `<p><strong>Dimensions:</strong> ${data.dimensions}</p>` : ''}
+                                    ${data.weight ? `<p><strong>Weight:</strong> ${data.weight}</p>` : ''}
+                                    <p><strong>Availability:</strong> <span class="availability ${data.availability_status}">${data.availability_status}</span></p>
+                                    ${data.rental_price_per_day ? `<p><strong>Rental Price:</strong> $${data.rental_price_per_day}/day</p>` : ''}
+                                </div>
+                            `;
+                        }
+                        modal.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error loading equipment details:', error);
+                        modalContent.innerHTML = '<p>Failed to load equipment details</p>';
+                        modal.style.display = 'block';
+                    });
+            };
+        });
+    </script>
+</body>
+</html>
