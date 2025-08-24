@@ -24,7 +24,7 @@ def setup_logging():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler('web_server.log')
+            logging.FileHandler('logs/web_server.log')
         ]
     )
 

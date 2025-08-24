@@ -5,11 +5,10 @@ A private learning/testing project that demonstrates how a Slack workspace can i
 
 ## Target Audience
 - **Primary**: Developers and engineers learning Slack API integration and AI/LLM implementation
-- **Secondary**: Sound and lighting rental companies looking to automate customer inquiries
-- **Tertiary**: Event planners and customers seeking quick equipment recommendations
 
 ## Primary Benefits / Features
-- **Seamless Slack Integration**: Users can request equipment recommendations directly through Slack messages
+- **Seamless Slack Integration**: Users can request equipment recommendations directly through Slack messages (later)
+- **Seamless Mock Slack**: Users can request equipment recommendations directly through a mock Slack platform as a flash web app. Mock as a customer requesting details. Easy to migrate to slack later
 - **AI-Powered Recommendations**: Cloudflare-based LLM analyzes user requirements and suggests optimal equipment combinations
 - **Intelligent Equipment Matching**: Database-driven system with detailed equipment descriptions for accurate AI understanding
 - **Package Recommendations**: Equipment grouped into logical categories (e.g., "party package") for easier decision-making
